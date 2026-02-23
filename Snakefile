@@ -1,90 +1,43 @@
-SAMPLES = ["SRR2584857_1"]
-GENOME = ["ecoli-rel606"]
-
-rule make_vcf:
+rule all:
     input:
-        expand("outputs/{sample}.x.{genome}.vcf",
-               sample=SAMPLES, genome=GENOME),
-        expand("outputs/{sample}.x.{genome}.vep.txt",
-              sample=SAMPLES, genome=GENOME),
-  
-rule uncompress_genome:
-    input: "{genome}.fa.gz"
-    output: "outputs/{genome}.fa"
-    shell: """
-        gunzip -c {input} > {output}
-    """
+        "SRR2584857_quast.4000000",
+        "SRR2584857_annot.4000000",
 
-rule map_reads:
+rule subset_reads:
     input:
-        reads="{reads}.fastq.gz",
-        ref="outputs/{genome}.fa"
-    output: "outputs/{reads}.x.{genome}.sam"
-    conda: "mapping"
-    shell: """
-        minimap2 -ax sr {input.ref} {input.reads} > {output}
-    """
-
-rule sam_to_bam:
-    input: "outputs/{reads}.x.{genome}.sam",
-    output: "outputs/{reads}.x.{genome}.bam",
-    conda: "mapping"
-    shell: """
-        samtools view -b {input} > {output}
-     """
-
-rule sort_bam:
-    input: "outputs/{reads}.x.{genome}.bam"
-    output: "outputs/{reads}.x.{genome}.bam.sorted"
-    conda: "mapping"
-    shell: """
-        samtools sort {input} > {output}
-    """
-
-rule index_bam:
-    input: "outputs/{reads}.x.{genome}.bam.sorted"
-    output: "outputs/{reads}.x.{genome}.bam.sorted.bai"
-    conda: "mapping"
-    shell: """
-        samtools index {input}
-    """
-
-rule call_variants:
-    input:
-        ref="outputs/{genome}.fa",
-        bam="outputs/{reads}.x.{genome}.bam.sorted",
-        bai="outputs/{reads}.x.{genome}.bam.sorted.bai",
+        "{sample}.fastq.gz",
     output:
-        pileup="outputs/{reads}.x.{genome}.pileup",
-        bcf="outputs/{reads}.x.{genome}.bcf",
-        vcf="outputs/{reads}.x.{genome}.vcf",
-    conda: "mapping"
+        "{sample}.{subset,\d+}.fastq.gz"
     shell: """
-        bcftools mpileup -Ou -f {input.ref} {input.bam} > {output.pileup}
-        bcftools call -mv -Ob {output.pileup} -o {output.bcf}
-        bcftools view {output.bcf} > {output.vcf}
+        gunzip -c {input} | head -{wildcards.subset} | gzip -9c > {output} || true
     """
 
-rule tabix:
+rule annotate:
     input:
-        gff="{filename}.gff.gz",
+        "SRR2584857-assembly.{subset}.fa"
     output:
-        tabix_idx='{filename}.gff.gz.tbi',
+        directory("SRR2584857_annot.{subset}")
     shell: """
-        tabix {input}
+       prokka --prefix {output} {input}                                       
     """
 
-rule predict_effects:
+rule assemble:
     input:
-        fasta="{genome}.fa.gz",
-        gff="{genome}.sorted.gff.gz",
-        vcf="outputs/{reads}.x.{genome}.vcf",
-        tabix_idx='ecoli-rel606.sorted.gff.gz.tbi',
+        r1 = "SRR2584857_1.{subset}.fastq.gz",
+        r2 = "SRR2584857_2.{subset}.fastq.gz"
     output:
-        txt="outputs/{reads}.x.{genome}.vep.txt",
-        html="outputs/{reads}.x.{genome}.vep.txt_summary.html",
-        warn="outputs/{reads}.x.{genome}.vep.txt_warnings.txt",
-    conda: "vep"
+        dir = directory("SRR2584857_assembly.{subset}"),
+        assembly = "SRR2584857-assembly.{subset}.fa"
     shell: """
-       vep --fasta {input.fasta} --gff {input.gff} -i {input.vcf} -o {output.txt}
+       megahit -1 {input.r1} -2 {input.r2} -f -m 5e9 -t 4 -o {output.dir}     
+       cp {output.dir}/final.contigs.fa {output.assembly}                     
+    """
+
+rule quast:
+    input:
+        "SRR2584857-assembly.{subset}.fa"
+    output:
+        directory("SRR2584857_quast.{subset}")
+    shell: """                                                                
+       quast {input} -o {output}                                              
     """
