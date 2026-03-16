@@ -39,11 +39,11 @@ rule map_reads:
 
 rule sam_to_bam:
     input: "outputs/{sample}.x.{genome}.sam"
-    output: "outputs/{sample}.x.{genome}.bam"
+    output: "outputs/{sample}.x.{genome}.unsorted.bam"
     shell: "samtools view -S -b {input} > {output}"
 
 rule sort_bam:
-    input: "outputs/{sample}.x.{genome}.bam"
+    input: "outputs/{sample}.x.{genome}.unsorted.bam"
     output: "outputs/{sample}.x.{genome}.sorted.bam"
     shell: "samtools sort {input} -o {output}"
 
