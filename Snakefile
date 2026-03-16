@@ -30,6 +30,14 @@ rule uncompress_genome:
     output: "outputs/{genome}.fa"
     shell: "gunzip -c {input} > {output}"
 
+rule bwa_index:
+    input:
+        "outputs/{genome}.fa"
+    output:
+        multiext("outputs/{genome}.fa", ".amb", ".ann", ".bwt", ".pac", ".sa")
+    shell:
+        "bwa index {input}"
+
 rule map_reads:
     input:
         reads="{sample}.fastq.gz",
