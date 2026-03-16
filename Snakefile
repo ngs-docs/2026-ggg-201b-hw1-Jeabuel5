@@ -1,3 +1,10 @@
+# Define sample datasets
+SAMPLES = {
+    "ERR458496": "https://osf.io/tzagu/download",
+    "ERR458503": "https://osf.io/px7sf/download",
+    # Add any additional samples if necessary
+}
+
 # Define different subset sizes representing different coverages
 COVERAGE_SIZES = [400000, 800000, 1200000]  # Adjust according to your desired coverages
 
