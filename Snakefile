@@ -41,9 +41,13 @@ rule bwa_index:
 rule map_reads:
     input:
         reads="{sample}.fastq.gz",
-        ref="outputs/{genome}.fa"
-    output: "outputs/{sample}.x.{genome}.sam"
-    shell: "bwa mem {input.ref} {input.reads} > {output}"
+        ref="outputs/{genome}.fa",
+        # This line forces Snakemake to run bwa_index first
+        idx=multiext("outputs/{genome}.fa", ".amb", ".ann", ".bwt", ".pac", ".sa")
+    output: 
+        "outputs/{sample}.x.{genome}.sam"
+    shell: 
+        "bwa mem {input.ref} {input.reads} > {output}"
 
 # We name this .raw.bam so it doesn't conflict with .sorted.bam
 rule sam_to_bam:
