@@ -34,7 +34,11 @@ rule bwa_index:
     input:
         "outputs/{genome}.fa"
     output:
-        multiext("outputs/{genome}.fa", ".amb", ".ann", ".bwt", ".pac", ".sa")
+        "outputs/{genome}.fa.amb",
+        "outputs/{genome}.fa.ann",
+        "outputs/{genome}.fa.bwt",
+        "outputs/{genome}.fa.pac",
+        "outputs/{genome}.fa.sa"
     shell:
         "bwa index {input}"
 
