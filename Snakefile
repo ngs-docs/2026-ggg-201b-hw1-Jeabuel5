@@ -70,3 +70,31 @@ rule tabix:
     shell: """
         tabix -p gff {input}
     """
+
+rule sam_to_bam:
+    input: "outputs/{sample}.x.{genome}.sam"
+    output: "outputs/{sample}.x.{genome}.bam"
+    shell: "samtools view -S -b {input} > {output}"
+
+rule sort_bam:
+    input: "outputs/{sample}.x.{genome}.bam"
+    output: "outputs/{sample}.x.{genome}.sorted.bam"
+    shell: "samtools sort {input} -o {output}"
+
+rule call_variants:
+    input:
+        ref="outputs/{genome}.fa",
+        bam="outputs/{sample}.x.{genome}.sorted.bam"
+    output: "outputs/{sample}.x.{genome}.vcf"
+    shell: "bcftools mpileup -f {input.ref} {input.bam} | bcftools call -mv -Ov > {output}"
+
+rule predict_effects:
+    input:
+        vcf="outputs/{sample}.x.{genome}.vcf",
+        gff="ecoli-rel606.sorted.gff.gz",
+        tbi="ecoli-rel606.sorted.gff.gz.tbi",
+        ref="outputs/{genome}.fa"
+    output: "outputs/{sample}.x.{genome}.vep.txt"
+    shell: """
+        bcftools csq -f {input.ref} -g {input.gff} {input.vcf} -o {output}
+    """
