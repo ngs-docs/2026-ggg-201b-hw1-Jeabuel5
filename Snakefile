@@ -1,90 +1,92 @@
-SAMPLES = ["SRR2584857_1"]
+# (a) Dictionary mapping sample IDs to their download URLs
+SAMPLES_MAP = {
+    "ERR458496": "https://osf.io/tzagu/download",
+    "ERR458503": "https://osf.io/px7sf/download"
+}
+
+SAMPLES = list(SAMPLES_MAP.keys())
 GENOME = ["ecoli-rel606"]
 
-rule make_vcf:
+rule all:
     input:
-        expand("outputs/{sample}.x.{genome}.vcf",
-               sample=SAMPLES, genome=GENOME),
-        expand("outputs/{sample}.x.{genome}.vep.txt",
-              sample=SAMPLES, genome=GENOME),
-  
+        expand("outputs/{sample}.x.{genome}.vcf", sample=SAMPLES, genome=GENOME),
+        expand("outputs/{sample}.x.{genome}.vep.txt", sample=SAMPLES, genome=GENOME)
+
+rule download_data:
+    output: "{sample}.fastq.gz"
+    params: url = lambda wildcards: SAMPLES_MAP[wildcards.sample]
+    shell: "curl -L {params.url} > {output}"
+
+rule download_genome:
+    output: "{genome}.fa.gz"
+    shell: "curl -L https://osf.io/vru9s/download > {output}"
+
+rule download_gff:
+    output: "ecoli-rel606.gff"
+    shell: "curl -L https://osf.io/s7e2d/download > {output}"
+
 rule uncompress_genome:
     input: "{genome}.fa.gz"
     output: "outputs/{genome}.fa"
-    shell: """
-        gunzip -c {input} > {output}
-    """
+    shell: "gunzip -c {input} > {output}"
+
+rule bwa_index:
+    input:
+        "outputs/{genome}.fa"
+    output:
+        "outputs/{genome}.fa.amb",
+        "outputs/{genome}.fa.ann",
+        "outputs/{genome}.fa.bwt",
+        "outputs/{genome}.fa.pac",
+        "outputs/{genome}.fa.sa"
+    shell:
+        "bwa index {input}"
 
 rule map_reads:
     input:
-        reads="{reads}.fastq.gz",
-        ref="outputs/{genome}.fa"
-    output: "outputs/{reads}.x.{genome}.sam"
-    conda: "mapping"
-    shell: """
-        minimap2 -ax sr {input.ref} {input.reads} > {output}
-    """
+        reads="{sample}.fastq.gz",
+        ref="outputs/{genome}.fa",
+        # This line forces Snakemake to run bwa_index first
+        idx=multiext("outputs/{genome}.fa", ".amb", ".ann", ".bwt", ".pac", ".sa")
+    output: 
+        "outputs/{sample}.x.{genome}.sam"
+    shell: 
+        "bwa mem {input.ref} {input.reads} > {output}"
 
+# We name this .raw.bam so it doesn't conflict with .sorted.bam
 rule sam_to_bam:
-    input: "outputs/{reads}.x.{genome}.sam",
-    output: "outputs/{reads}.x.{genome}.bam",
-    conda: "mapping"
-    shell: """
-        samtools view -b {input} > {output}
-     """
+    input: "outputs/{sample}.x.{genome}.sam"
+    output: "outputs/{sample}.x.{genome}.raw.bam"
+    shell: "samtools view -S -b {input} > {output}"
 
+# This takes the .raw.bam and creates the .sorted.bam
 rule sort_bam:
-    input: "outputs/{reads}.x.{genome}.bam"
-    output: "outputs/{reads}.x.{genome}.bam.sorted"
-    conda: "mapping"
-    shell: """
-        samtools sort {input} > {output}
-    """
-
-rule index_bam:
-    input: "outputs/{reads}.x.{genome}.bam.sorted"
-    output: "outputs/{reads}.x.{genome}.bam.sorted.bai"
-    conda: "mapping"
-    shell: """
-        samtools index {input}
-    """
+    input: "outputs/{sample}.x.{genome}.raw.bam"
+    output: "outputs/{sample}.x.{genome}.sorted.bam"
+    shell: "samtools sort {input} -o {output}"
 
 rule call_variants:
     input:
         ref="outputs/{genome}.fa",
-        bam="outputs/{reads}.x.{genome}.bam.sorted",
-        bai="outputs/{reads}.x.{genome}.bam.sorted.bai",
-    output:
-        pileup="outputs/{reads}.x.{genome}.pileup",
-        bcf="outputs/{reads}.x.{genome}.bcf",
-        vcf="outputs/{reads}.x.{genome}.vcf",
-    conda: "mapping"
-    shell: """
-        bcftools mpileup -Ou -f {input.ref} {input.bam} > {output.pileup}
-        bcftools call -mv -Ob {output.pileup} -o {output.bcf}
-        bcftools view {output.bcf} > {output.vcf}
-    """
+        bam="outputs/{sample}.x.{genome}.sorted.bam"
+    output: "outputs/{sample}.x.{genome}.vcf"
+    shell: "bcftools mpileup -f {input.ref} {input.bam} | bcftools call -mv -Ov > {output}"
+
+rule sort_gff:
+    input: "ecoli-rel606.gff"
+    output: "ecoli-rel606.sorted.gff.gz"
+    shell: "grep -v '^#' {input} | sort -k1,1 -k4,4n | bgzip > {output}"
 
 rule tabix:
-    input:
-        gff="{filename}.gff.gz",
-    output:
-        tabix_idx='{filename}.gff.gz.tbi',
-    shell: """
-        tabix {input}
-    """
+    input: "ecoli-rel606.sorted.gff.gz"
+    output: "ecoli-rel606.sorted.gff.gz.tbi"
+    shell: "tabix -p gff {input}"
 
 rule predict_effects:
     input:
-        fasta="{genome}.fa.gz",
-        gff="{genome}.sorted.gff.gz",
-        vcf="outputs/{reads}.x.{genome}.vcf",
-        tabix_idx='ecoli-rel606.sorted.gff.gz.tbi',
-    output:
-        txt="outputs/{reads}.x.{genome}.vep.txt",
-        html="outputs/{reads}.x.{genome}.vep.txt_summary.html",
-        warn="outputs/{reads}.x.{genome}.vep.txt_warnings.txt",
-    conda: "vep"
-    shell: """
-       vep --fasta {input.fasta} --gff {input.gff} -i {input.vcf} -o {output.txt}
-    """
+        vcf="outputs/{sample}.x.{genome}.vcf",
+        gff="ecoli-rel606.sorted.gff.gz",
+        tbi="ecoli-rel606.sorted.gff.gz.tbi",
+        ref="outputs/{genome}.fa"
+    output: "outputs/{sample}.x.{genome}.vep.txt"
+    shell: "bcftools csq -f {input.ref} -g {input.gff} {input.vcf} -o {output}"

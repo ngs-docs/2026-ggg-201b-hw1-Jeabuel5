@@ -1,0 +1,85 @@
+1. Which variants are present in which samples?
+
+Variants are named by genomic position with reference and alternate alleles as reported in the VCF files.
+
+SRR2584403_1
+	-	ecoli:1329520 T->G
+	-	ecoli:4141016 C->A
+
+SRR2584404_1
+	-	ecoli:238917 G->T
+	-	ecoli:806308 ATT->AT (deletion)
+	-	ecoli:1329520 T->G
+	-	ecoli:4141016 C->A
+
+SRR2584405_1
+	-	ecoli:15382 C->T
+	-	ecoli:154497 T->G
+	-	ecoli:254101 T->G
+	-	ecoli:649522 C->T
+	-	ecoli:692265 C->T
+	-	ecoli:692268 A->G
+	-	ecoli:708118 T->C
+	-	ecoli:1176010 T->G
+	-	ecoli:1503866 A->C
+	-	ecoli:1680445 A->T
+	-	ecoli:1680446 A->T
+	-	ecoli:1733754 A->T
+	-	ecoli:1996109 A->T
+	-	ecoli:2000253 A->T
+	-	ecoli:2020126 C->G
+	-	ecoli:2103887 ACAGCCAGCCAGCCAGCCAGCCAGCCAGCCAG -> ACAGCCAGCCAGCCAGCCAGCCAGCCAGCCAGCCAG (insertion)
+	-	ecoli:2296329 A->C
+	-	ecoli:2330469 A->T
+	-	ecoli:2330472 A->T
+	-	ecoli:2416966 C->T
+	-	ecoli:2671373 T->G
+	-	ecoli:2671376 C->A
+	-	ecoli:2682710 G->C
+	-	ecoli:2682764 C->T
+	-	ecoli:3090762 C->A
+	-	ecoli:3090763 T->G
+	-	ecoli:3268057 T->C
+	-	ecoli:3351282 C->T
+	-	ecoli:3509753 T->C
+	-	ecoli:3568506 T->G
+	-	ecoli:3762120 C->A
+	-	ecoli:4029556 G->T
+	-	ecoli:4029559 A->C
+	-	ecoli:4192865 G->A
+	-	ecoli:4497049 T->G
+	-	ecoli:4503866 T->C
+	-	ecoli:4504217 G->A
+	-	ecoli:4504253 G->A
+	-	ecoli:4505396 T->C
+	-	ecoli:4505407 G->A
+	-	ecoli:4506070 A->T
+	-	ecoli:4593578 C->T
+
+SRR2584857_1
+	-	ecoli:920514 T->C
+	-	ecoli:3931002 A->C
+	-	ecoli:4141441 C->T
+	-	ecoli:4202391 T->G
+	-	ecoli:4530767 CACCCTAACCCT -> CACCCTAACCCTAACCCT (insertion)
+
+
+
+2. Which variants are shared between two or more samples?
+
+Variants shared between samples:
+
+	1.	ecoli:1329520 T->G
+      Present in SRR2584403_1 and SRR2584404_1
+
+	2.	ecoli:4141016 C->A
+      Present in SRR2584403_1 and SRR2584404_1
+
+All other variants appear to be unique to individual samples.
+
+
+
+3. Are there any variants that stand out in terms of their likely biological impact?
+
+Predictions of variant effects through Ensembl VEP reveal that the variants studied are mainly intergenic and categorized as IMPACT=MODIFIER. For instance, in sample SRR2584405_1, variants like ecoli:15382 C->T and ecoli:154497 T->G were identified as intergenic.
+None of the variants were found to cause missense, nonsense, or frameshift mutations in coding regions. Consequently, the detected variants do not appear to have significant direct effects on protein function, although intergenic variants may have the potential to affect regulatory regions.
