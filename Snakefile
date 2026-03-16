@@ -37,13 +37,15 @@ rule map_reads:
     output: "outputs/{sample}.x.{genome}.sam"
     shell: "bwa mem {input.ref} {input.reads} > {output}"
 
+# We name this .raw.bam so it doesn't conflict with .sorted.bam
 rule sam_to_bam:
     input: "outputs/{sample}.x.{genome}.sam"
-    output: "outputs/{sample}.x.{genome}.unsorted.bam"
+    output: "outputs/{sample}.x.{genome}.raw.bam"
     shell: "samtools view -S -b {input} > {output}"
 
+# This takes the .raw.bam and creates the .sorted.bam
 rule sort_bam:
-    input: "outputs/{sample}.x.{genome}.unsorted.bam"
+    input: "outputs/{sample}.x.{genome}.raw.bam"
     output: "outputs/{sample}.x.{genome}.sorted.bam"
     shell: "samtools sort {input} -o {output}"
 
@@ -60,8 +62,8 @@ rule sort_gff:
     shell: "grep -v '^#' {input} | sort -k1,1 -k4,4n | bgzip > {output}"
 
 rule tabix:
-    input: "{filename}.gff.gz"
-    output: "{filename}.gff.gz.tbi"
+    input: "ecoli-rel606.sorted.gff.gz"
+    output: "ecoli-rel606.sorted.gff.gz.tbi"
     shell: "tabix -p gff {input}"
 
 rule predict_effects:
