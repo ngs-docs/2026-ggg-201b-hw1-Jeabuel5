@@ -25,10 +25,6 @@ rule download_gff:
     output: "ecoli-rel606.gff"
     shell: "curl -L https://osf.io/s7e2d/download > {output}"
 
-rule download_gff:
-    output: "ecoli-rel606.gff"
-    shell: "curl -L https://osf.io/s7e2d/download > {output}"
-
 rule uncompress_genome:
     input: "{genome}.fa.gz"
     output: "outputs/{genome}.fa"
